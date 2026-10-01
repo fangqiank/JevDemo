@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jev 题材选股 Demo</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --green: #16a34a; --green-bg: #f0fdf4; --amber: #b45309; --amber-bg: #fffbeb;
+      --line: #e5e7eb; --accent: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1115; --card: #171a21; --ink: #e5e7eb; --muted: #9ca3af;
+        --green: #4ade80; --green-bg: #14251a; --amber: #fbbf24; --amber-bg: #2a2110;
+        --line: #262b36; --accent: #60a5fa;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px 16px; background: var(--bg); color: var(--ink);
+      font: 15px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .bar { display: flex; gap: 8px; }
+    input {
+      flex: 1; padding: 10px 14px; font-size: 15px; border: 1px solid var(--line);
+      border-radius: 10px; background: var(--card); color: var(--ink); outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    button {
+      padding: 10px 22px; font-size: 15px; border: 0; border-radius: 10px;
+      background: var(--accent); color: #fff; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .chips { margin: 10px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+    .chips button {
+      background: var(--card); color: var(--muted); border: 1px solid var(--line);
+      padding: 4px 12px; font-size: 13px;
+    }
+    .status { margin: 20px 0; color: var(--muted); font-size: 14px; }
+    .err { color: #dc2626; }
+    .tier { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+    .tier h2 { font-size: 14px; margin: 0 0 10px; }
+    .tier.ok h2 { color: var(--green); }
+    .tier.watch h2 { color: var(--amber); }
+    .stock { padding: 8px 0; border-top: 1px solid var(--line); }
+    .stock:first-of-type { border-top: 0; }
+    .line1 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .rank { color: var(--muted); font-size: 13px; }
+    .name { font-weight: 600; }
+    .code { color: var(--muted); font-size: 13px; font-family: ui-monospace, Consolas, monospace; }
+    .metrics { margin-left: auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .foot { margin-top: 18px; color: var(--muted); font-size: 12px; }
+    .empty { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Jev 题材选股 Demo</h1>
+    <div class="sub">DeepSeek 生成候选池 → Jev 判断题材纯度 → 代码组合排序 · 候选来自训练知识（无实时行情），仅供演示，非投资建议</div>
+
+    <div class="bar">
+      <input id="theme" placeholder="输入题材，如：AI、新能源、机器人…" maxlength="30" />
+      <button id="go">选股</button>
+    </div>
+    <div class="chips">
+      <button data-t="AI">AI</button>
+      <button data-t="新能源">新能源</button>
+      <button data-t="创新药">创新药</button>
+      <button data-t="机器人">机器人</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div id="out"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const input = $("theme"), btn = $("go"), status = $("status"), out = $("out"), foot = $("foot");
+
+    async function pick(theme) {
+      btn.disabled = true;
+      out.innerHTML = ""; foot.textContent = "";
+      status.textContent = `题材「${theme}」：DeepSeek 正在生成候选池，Jev 判断中… 约 10~20 秒`;
+      try {
+        const res = await fetch("/api/pick", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ theme }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        render(data);
+        status.textContent = "";
+      } catch (e) {
+        status.innerHTML = `<span class="err">失败：${e.message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function stock(x, ranked) {
+      const m = `fit=${x.fit.toFixed(2)} · centrality=${x.centrality.toFixed(2)}`;
+      return `<div class="stock">
+        <div class="line1">
+          ${ranked ? `<span class="rank">#${ranked}</span>` : ""}
+          <span class="name">${x.name}</span>
+          <span class="code">${x.ticker} · ${x.code}</span>
+          <span class="metrics">${m}</span>
+        </div>
+        <div class="desc">${x.business}；${x.recentNews}</div>
+      </div>`;
+    }
+
+    function render(r) {
+      let html = "";
+      html += r.eligible.length
+        ? `<div class="tier ok"><h2>✅ 入选 · fit ≥ 0.8 · 按题材中心度取前 3</h2>` +
+          r.eligible.slice(0, 3).map((x, i) => stock(x, i + 1)).join("") + `</div>`
+        : `<div class="tier"><h2>✅ 入选</h2><div class="empty">没有候选真正属于该题材 —— 如实报告，不硬选</div></div>`;
+      if (r.watch.length) {
+        html += `<div class="tier watch"><h2>👁 观察名单 · 0.5 ≤ fit &lt; 0.8</h2>` +
+          r.watch.map((x) => stock(x)).join("") + `</div>`;
+      }
+      out.innerHTML = html;
+      foot.textContent = `候选池 ${r.poolSize} 只（DeepSeek 生成） · 未入选 ${r.rest} 只` +
+        (r.usage ? ` · Jev tokens: in=${r.usage.input_tokens} / out=${r.usage.output_tokens}` : "");
+    }
+
+    btn.addEventListener("click", () => {
+      const t = input.value.trim();
+      if (t) pick(t);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && input.value.trim()) pick(input.value.trim());
+    });
+    document.querySelectorAll(".chips button").forEach((b) =>
+      b.addEventListener("click", () => { input.value = b.dataset.t; pick(b.dataset.t); })
+    );
+  </script>
+</body>
+</html>

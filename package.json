@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "scenario": "tsx --env-file=.env"
+    "scenario": "tsx --env-file=.env",
+    "stocks": "tsx --env-file=.env src/stocks/pick.ts"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@vercel/node": "^17.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }

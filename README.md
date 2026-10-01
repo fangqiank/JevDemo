@@ -46,6 +46,27 @@ npm run scenario -- src/state/01-object-state.ts   # 任一场景同理
 | `03-thresholds-by-action.ts` | 不同动作不同阈值：建议回复 0.5，自动退款 0.95 |
 | `04-composite-scoring.ts` | Jev 出判断，代码加权组合；调权重无需重新调用 |
 
+### stocks · 综合实战：题材选股（DeepSeek + Jev）
+
+输入任意题材，**DeepSeek 生成候选股票池（state）→ Jev 做校准判断 → 代码组合选股**：
+
+| 文件 | 说明 |
+|---|---|
+| `deepseek.ts` | 调 DeepSeek（OpenAI 兼容接口）生成 12 只候选的业务事实，逐条校验后作为 state |
+| `pipeline.ts` | 共享流水线：每只候选 2 个问题（`fit` noul 是否属于题材 + `centrality` score 题材纯度），一次批量请求；代码按 `fit ≥ 0.8` 过滤、`centrality` 排序取 top 3，`0.5~0.8` 进观察名单，无匹配如实报告 |
+| `pick.ts` | CLI 入口：`npm run stocks -- "AI"` |
+| `api/pick.ts` + `public/index.html` | Web 版（部署在 Vercel），密钥仅存服务端环境变量 |
+
+⚠️ 候选来自 DeepSeek 的训练知识（无实时行情），仅供演示，非投资建议。
+
+### 部署 Web 版（Vercel）
+
+```bash
+vercel env add TYPESAFE_API_KEY production   # 各自粘贴密钥
+vercel env add DEEPSEEK_API_KEY production
+vercel --prod
+```
+
 ## 核心要点
 
 - **state**：用对象、结构化、预先计算、只给必要信息
