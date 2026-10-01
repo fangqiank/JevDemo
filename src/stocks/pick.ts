@@ -4,7 +4,7 @@
  *       npm run stocks -- "AI"    （单次）
  */
 import readline from "node:readline/promises";
-import { pickStocks } from "./pipeline";
+import { pickStocks } from "./pipeline.js";
 
 function print(r: Awaited<ReturnType<typeof pickStocks>>): void {
   console.log(`候选池：DeepSeek 生成 ${r.poolSize} 只 · Jev 一次批量请求`);

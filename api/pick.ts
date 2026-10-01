@@ -3,7 +3,7 @@
  * 密钥只存在 Vercel 环境变量里，前端永不接触 TYPESAFE_API_KEY / DEEPSEEK_API_KEY
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { pickStocks } from "../src/stocks/pipeline";
+import { pickStocks } from "../src/stocks/pipeline.js";
 
 export const maxDuration = 60; // DeepSeek 生成 + Jev 判断链路较长
 

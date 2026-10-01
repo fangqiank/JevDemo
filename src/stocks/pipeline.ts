@@ -3,8 +3,8 @@
  * DeepSeek 生成候选池（state）→ Jev 一次批量判断（fit noul + centrality score）→ 代码组合
  */
 import { noul, score, type EntryType } from "@typesafe-ai/sdk";
-import { client } from "../lib/client";
-import { fetchUniverse, type Stock } from "./deepseek";
+import { client } from "../lib/client.js";
+import { fetchUniverse, type Stock } from "./deepseek.js";
 
 export interface PickRow extends Stock {
   fit: number;
